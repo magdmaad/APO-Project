@@ -1,0 +1,312 @@
+---
+title: "Women Inventor Rate by technical area"
+author: "Magdalena Maad"
+date: "2024-02-05"
+output: html_document
+bibliography: citation_APO.bib
+csl: apa.csl
+css: "styles.css"
+---
+
+## Research Topic
+
+Gender disparities in patents have been a long recognized issue. @de_melo-martin_patenting_2013 argues that the commercialization of academia, in particular, commercial activity resulting from patenting, provoke significant changes in the evaluation of the contribution and performance of scientists. In this regard, emphasis must be put on the gender gap in patenting activity, which often involves advocating the encouragement of women in patent applications. The complex, time and monetary extensive process of patent applications is often brought forward as a relevant cause for the great divide [@shaw_tackling_2021]. Interconnected to this are systematic obstacles which women face. These include the lack of accessible childcare in companies or the delegation of specific tasks in administration, which detain women from their actual research [@goodman_addressing_2022]. Furthermore, another frequently mentioned reason for a gender diverge is the knowledge gap of the patenting process as well as the difficulties for women in building networks [@shaw_tackling_2021]. Especially the ladder involves the maintenance of business relationships off the job, which is often incompatible with responsibilities in unpaid care work. What is more, a structural barrier of a stereotype driven picture of women is conductive to the great gender gap in patenting [@shaw_tackling_2021]. Women are attributed with higher risk-aversion compared to men, female researchers are often associated with restraining from speaking up for their interests and not as focused on commercialization as men. 
+Resulting from this, it is often argued that the gender gap in patenting inhibit advancement in women's careers and gender-equitable policies would foster productivity in innovation sectors [@goodman_addressing_2022, @de_melo-martin_patenting_2013].
+Criticism is brought upon this stance by @de_melo-martin_patenting_2013, who declares that the goal of gender equality in patenting is particularly built on two problematic assumptions. 
+First, the assessment of women's research impact measured on the patenting activity is seen as doubtful and secondly, the benefit of patents for society is put in dispute.   
+By outlining key arguments of the discourse, a comprehensive picture of the reasons for gender gaps in patenting should have been drawn by now. 
+In order to evaluate the recent trend in patenting, the Women Inventor Rate (WIR) can be employed. It captures the proportion of women who filed for a patent among all patent applicants in a given year or period [@epo_women_2022]. The initial specified task was to evaluate Austria's performance in country comparison. In addition, the WIR was provided for 5 different technical areas, which were aimed to be incorporated into the graphical illustration.
+
+## Research Question
+
+The corresponding research question evolved as following: "(Where) Do women invent?" - to put it in more context "To what extend is a gender divide evident in Austrian patent applications over different sectors and across country groups?" The geometry Sankey Bump which incorporates ranking elements into a flow chart was chosen for visualization purposes [@sjoberg_ggsankey_2021]. This idea was based on the aim of illustrating the issue of gender inequality in patent applications in an accessible manner for broader sections of society, presumably the key audience of the APO.
+
+## Dataset
+
+The dataset employed was provided by the @epo_women_2022 and specifically deals with the country and technical sector comparison of the women inventor rate. In detail, it included country codes, the technical sector of the patent application, the absolute number of applications for "women" and "men" respectively as well as the women inventor rate (wir) and a time variable. Further, decimal points for values of each gender variables could be explained by patent applications of more than one person.
+The filing for one patents may be conducted by eg. 2 women and one men, explaining decimal points. The ratio of the "women" to "men" variables yields the women inventor rate.
+The time variable indicated that one is concerned with a time span over 10 years each (1990-99, 2000-09, 2010-19).
+Since the research question stressed the wir, the additional information on men and women was disregarded for the visualization and was solely employed for selective, in-depth investigation.
+
+In order to proceed with further details on the visualization, the wir should be taken up at first.
+The overall distribution of the wir for the overall dataset is depicted by the boxplot below, one can see that the average lays around 12 % of women inventors.
+One outlier exists with a women inventor rate of 100%.
+In the period between 1990-99 in Macedonia only a small number of patents have been filed, which could explain the outlier it generated.
+Thus, one must be careful with rates, since they must be set in relation to the absolute values of patent applications.
+Arguably, the high rates in Macedonia for one period were not caused by progressive policies supporting women in innovations in the 1900ies, but rather the low absolute numbers of patent applications. If these high numbers were unbiased, Austria may request expertise from Macedonia, as we may see at a later stage.
+
+In order to face this issue of biasedness, innovative levels of the counties measured beyond patent applications were included to try to outbalance this issue. In this regard, to be able to proceed to the visualization, the countries were grouped after the country classification definition of the European Innovation Scoreboard into 4 innovation levels: Leading -, Strong -, Moderate - and Emerging Innovators [@doi/10.2777/119961]. In addition, Austria was separated as the country of interest and it was added to the 4 country groups for innovation. The second boxplot of the filtered dataset is provided below to put emphasis on a unbiased data basis. It shows that no large outliers are evident, such that one may deduct substantive inferences. 
+In the following, the mean of the wir was calculated for each of the 4 innovation groups to evaluate Austria's performance in gender relations among innovators.
+Aside from this, the relevant variables were factorized and a color plate based on the three colors provided by the AP0 was constructed.
+
+
+```{r , echo= FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#devtools::install_github("davidsjoberg/ggsankey") # install the package of the geometry for the ggplot
+
+librarian::shelf(tidyverse, ggtext, dplyr, readxl, sysfonts, stringr, ggbump, ggsankey, gapminder, patchwork, jpeg, RColorBrewer, ggrepel, gghighlight) # load packages and install remaining ones, which you have not installed yet
+setwd("/Users/magdalenamaad/Documents/WU Master/Economic Policy/R_code/Assignment_Patent_Office") # adapt your path to the working directory
+data <- read_excel("17) womens inventor rate (WIR) technical areas.xlsx", sheet = "Daten") # read in the data file
+
+### country classifications ###
+most_innovative_countries <- c("SE", "DK", "FI", "NL", "BE")
+strong_innovators <- c("AT", "DE", "GR", "LU", "IT", "IE", "CY", "FR")
+moderate_innovators <- c("ES", "SI", "CZ", "ES", "PT", "LT", "GR", "HU")
+emerging_innovators <- c("HR", "SK", "PL", "LV", "BG", "RO")
+
+
+data <- 
+  data |> select(ctry, sector, time, wir) |> # selecting relevant columns 
+  rename(country = ctry) |> 
+  mutate(time = factor(time)) |> 
+  mutate(innovation_level = case_when( # assigning the innovation categories to the country groups
+    country %in% most_innovative_countries ~ "Leading Innovators", 
+    country %in% strong_innovators ~ "Strong Innovators",
+    country %in% moderate_innovators ~ "Moderate Innovators",
+    country %in% emerging_innovators ~ "Emerging Innovators",
+    TRUE ~ "Other"
+  )) |> mutate(innovation_level = ifelse(innovation_level == "Strong Innovators", "Strong Innovators (incl. Austria)", innovation_level))
+
+### calculating the mean of the WIR to attain the average WIR of the country groups 
+summary_data <- data |> 
+  filter(innovation_level != "Other") |> 
+  group_by(sector, time, innovation_level) |> 
+  summarise(wir = mean(wir)) 
+
+### creating a separate data frame for Austria ###
+AT <- data |>  
+  filter(country %in% "AT") |> 
+  select(sector, time, wir, country) |> 
+  rename(innovation_level = country) |> 
+  mutate(innovation_level = ifelse(innovation_level == "AT", "Austria", innovation_level)) # which can be used for setting a different data source within the plot (e.g. highlighting)
+
+### combing the two data frames ###
+final_dat <- rbind(AT, summary_data) 
+final_dat$innovation_level <- factor(final_dat$innovation_level,
+                                     levels = c("Austria", "Leading Innovators", "Strong Innovators (incl. Austria)", "Moderate Innovators", "Emerging Innovators")) # factorizing the single columns, which will be later used for data visualization
+final_dat$sector <- factor(final_dat$sector,
+                                     levels = c("Chemistry", "Instruments", "Electrical engineering", "Mechanical engineering", "Other fields"))
+AT$sector <- factor(AT$sector,
+                    levels = c("Chemistry", "Instruments", "Electrical engineering", "Mechanical engineering", "Other fields"))
+
+### creating a color pallet of the 3 respective APO colors ###
+apo_colors <- colorRampPalette(c( "#E5005B","#6F6F6E", "#235169" , bias = 10), space = "rgb", interpolate = "spline")
+
+### import logo of the APO ###
+patent_office <- readJPEG("logo.jpg", native = TRUE)
+
+### Boxplots ###
+boxplot(data$wir, xlab = "Range of WIR among all countries and points in time", 
+        horizontal = TRUE) 
+boxplot(final_dat$wir, xlab = "Range of WIR among the country classifications and points in time", 
+        horizontal = TRUE) 
+```
+
+## Results
+
+The Sankey_Bump Chart depicts the development of the mean of the women inventor rate from 1990 until 2019 over country group comparison by innovation level.
+To be precise, a single data point regards to the mean of the wir for a country group and Austria respecitvely in a specified time span over 10 years.
+The values for Austria (flow elements) were highlighted to make the country comparisons of the wir among the different innovation levels more apparent.
+Moreover, the percentages illustrate the wir for each time span for Austria.
+Lastly, the flow elements display the relative size of the wir among all groups (AT and innovation levels) and include a ranking, which implies that the order (from top to bottom) holds explanatory power of the performance of the respective group.
+This implies that the "bumping" of flow element over another demonstrates a relatively better performance compared to the other groups.
+
+The most striking result of the visualization constitutes the continuous low performance of Austria in comparison with other innovation groups and its associated innovation level (strong innovators).
+Austria scores for all 5 different technical areas the lowest rates of women inventors, indicating that Austria is performing below average within its associated level innovation and among all averaged innovation levels. This finding further stresses the importance of gender in innovations, highlighting the need for structures which especially support female inventors. 
+
+Moreover, emerging innovators and moderate innovators outperform leading and moderate innovators in 2 technical areas. Intriguingly, for the technical area of chemistry the 2 lower classes of innovation level countries score the highest women inventors rate and lie consistently above the leading and moderate innovators. 
+Chemistry is the technical area, which holds the largest share of women among all patent applicants in its field. A possible explanation for this could be that the large share of jobs in state-owned institutions (e.g. Universities) which tend to be more gender balanced [@epo_women_2022].
+
+The results of this analysis highlights the need of gender-equitable policies and puts further emphasize on the potential for progress in Austria.
+
+```{r , echo=FALSE, warning=FALSE,  message=FALSE}
+sysfonts::font_add_google("Open Sans") # setting the font 
+
+final_dat |>  
+  ggplot(aes(x = time,  # the time dimension is printed on the x axis, nodes and filling are determined by the innovation level, the value is the wir, which defines the ranking of the flow elements
+             node = innovation_level,
+             fill = innovation_level,
+             value = wir, group = sector)) +
+  geom_sankey_bump(space = 1.5, type = "alluvial", #1 or 1.5 for space, spaces creates room between the single flow elements
+                   color = "transparent", # color of the line between flow elements
+                   smooth = 6, # how the flow elements should be depicted 
+                   aes(alpha = ifelse(innovation_level != "Austria", 0, NA))) + # command for highlighting the flows for Austria
+  scale_fill_manual(values = apo_colors(5))+ # includes the color function generated above
+  scale_alpha_continuous(range = c(0, 0.9),guide = FALSE) + # excluding the second legend generated by the alpha value
+  theme_sankey_bump(base_size = 16) + # adjusts the initial size of the flow elements
+  facet_wrap(~sector, nrow = 2) + # generates a graph for each element of the "sector" variable
+  geom_text(data = AT, aes(y = wir, x = time, 
+                           label = glue::glue("{round(wir, 1)}%"), # adjust your labels, in this case % is added
+                           fontface = "bold"), # labels are printed bold for more visibility
+            nudge_y = 3, nudge_x = 0, vjust = 0.25) +   # nudge_y moves along y axis, vjust places the label further down
+  labs(x = NULL, # removes title for the x-axis
+       fill = NULL, # removes any filling
+       color = NULL) + 
+  labs(title = "Where <span style='color:#235169;'>**do women invent?**</span>", 
+       subtitle = "Women Inventor Rate across country(classifications) and different technical areas",
+       caption = "Data: EPO 2022. Figure: @magdalenamaad")+
+  theme(plot.background = element_rect(fill = "white"),
+        plot.margin = margin(t = 1, b = 1, l = 1, r = 1, unit = "lines"), 
+        plot.title.position = "plot", # title aligned with plot
+        plot.title = ggtext::element_markdown(size = 30), # text can be formatted via markdown commands
+        plot.subtitle = element_text(margin = margin(b = 1, unit = "lines"), size = 12), # b adjusts the lines between title and subtitle
+        plot.caption = element_text(margin = margin(t = 1, unit = "lines"), size = 10),
+        legend.position = c(0.85, 0.25), # fist value indicates how far to the right the legend is printed, second one how much upwards the legend should be moved
+        legend.key.size = unit(3, "cm"), 
+        legend.key.width = unit(0.2, "cm"), # defines the width/height of the colored squares in the legend
+        legend.key.height = unit(0.2, "cm"),
+        legend.direction = "vertical", # legend is printed either vertical or horizontal
+        legend.text = element_text(size = 10),
+        text = element_text(color = "black"), # you can adjust the color of all text elements with this command
+        axis.text = element_text(margin = margin(b = 0.5, unit = "lines"),color = "black", size = 10),
+        axis.text.y = element_blank(), # all commands remove unnecessary clutter
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),  # Hide y-axis ticks
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()
+        )+
+  inset_element(p=patent_office,
+                left=0.65,
+                bottom=0.0085,  # top shifts to the right, bottom to the left
+                right=0.95,
+                top=0.085) 
+```
+
+## Conclusio
+
+Even though one must be careful with inferring quickly drawn conclusions, since ratios must be embedded into the absolute values of patent application, a convincing picture of vigorous gender inequity is evident form the visualization.
+Most importantly, one can find substantial differences between the country groups associated with a high level of innovation and countries with low numbers of innovation, which should serve to pigeonhole the results. This finding indicates that inter-country cooperation is crucial to aim for a more gender-equitable patenting environment.
+It can be derived from this analysis that entrenched structures in institutional frameworks of the different technical industries inhibit women from inventing.
+These structures seem to be especially stubborn for highly innovative countries. Moreover, it is evident that industries, which are largely state-owned institutions as it is the case for the chemistry sector, present a more gender-equitable picture of job positions and thus are associated with a larger share of women inventors.
+
+## References
+
+<div id="refs" ></div>
+
+
+## Appendix
+
+A short clarification at the beginning of the Appendix, I referred to the women inventor rate and not women's inventor rate as provided by the APO, since the @epo_women_2022 consistently defined the WIR as women inventor rate in their respective reports on gender inequality in patenting. 
+
+```{r , warning=FALSE, fig.show='hide', message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#devtools::install_github("davidsjoberg/ggsankey") # install the package of the geometry for the ggplot
+
+librarian::shelf(tidyverse, ggtext, dplyr, readxl, sysfonts, stringr, ggbump, ggsankey, gapminder, patchwork, jpeg, RColorBrewer, ggrepel, gghighlight) # load packages and install remaining ones, which you have not installed yet
+
+setwd("/Users/magdalenamaad/Documents/WU Master/Economic Policy/R_code/Assignment_Patent_Office") # adapt your path to the working directory
+
+data <- read_excel("17) womens inventor rate (WIR) technical areas.xlsx", sheet = "Daten") # read in the data file
+
+### country classifications ###
+most_innovative_countries <- c("SE", "DK", "FI", "NL", "BE")
+strong_innovators <- c("AT", "DE", "GR", "LU", "IT", "IE", "CY", "FR")
+moderate_innovators <- c("ES", "SI", "CZ", "ES", "PT", "LT", "GR", "HU")
+emerging_innovators <- c("HR", "SK", "PL", "LV", "BG", "RO")
+
+
+data <- 
+  data |> select(ctry, sector, time, wir) |> # selecting relevant columns 
+  rename(country = ctry) |> 
+  mutate(time = factor(time)) |> 
+  mutate(innovation_level = case_when( # assigning the innovation categories to the country groups
+    country %in% most_innovative_countries ~ "Leading Innovators", 
+    country %in% strong_innovators ~ "Strong Innovators",
+    country %in% moderate_innovators ~ "Moderate Innovators",
+    country %in% emerging_innovators ~ "Emerging Innovators",
+    TRUE ~ "Other"
+  )) |> mutate(innovation_level = ifelse(innovation_level == "Strong Innovators", "Strong Innovators (incl. Austria)", innovation_level))
+
+### calculating the mean of the WIR to attain the average WIR of the country groups 
+summary_data <- data |> 
+  filter(innovation_level != "Other") |> 
+  group_by(sector, time, innovation_level) |> 
+  summarise(wir = mean(wir)) 
+
+### creating a separate data frame for Austria ###
+AT <- data |>  
+  filter(country %in% "AT") |> 
+  select(sector, time, wir, country) |> 
+  rename(innovation_level = country) |> 
+  mutate(innovation_level = ifelse(innovation_level == "AT", "Austria", innovation_level)) # which can be used for setting a different data source within the plot (e.g. highlighting)
+
+### combing the two data frames ###
+final_dat <- rbind(AT, summary_data) 
+final_dat$innovation_level <- factor(final_dat$innovation_level,
+                                     levels = c("Austria", "Leading Innovators", "Strong Innovators (incl. Austria)", "Moderate Innovators", "Emerging Innovators")) # factorizing the single columns, which will be later used for data visualization
+final_dat$sector <- factor(final_dat$sector,
+                                     levels = c("Chemistry", "Instruments", "Electrical engineering", "Mechanical engineering", "Other fields"))
+AT$sector <- factor(AT$sector,
+                    levels = c("Chemistry", "Instruments", "Electrical engineering", "Mechanical engineering", "Other fields"))
+
+### creating a color pallet of the 3 respective APO colors ###
+apo_colors <- colorRampPalette(c( "#E5005B","#6F6F6E", "#235169" , bias = 10), space = "rgb", interpolate = "spline")
+
+### import logo of the APO ###
+patent_office <- readJPEG("logo.jpg", native = TRUE)
+
+### ggsankey - Sankey_Bump Graph ###
+sysfonts::font_add_google("Open Sans") # setting the font 
+
+final_dat |>  
+  ggplot(aes(x = time,  # the time dimension is printed on the x axis, nodes and filling are determined by the innovation level, the value is the wir, which defines the ranking of the flow elements
+             node = innovation_level,
+             fill = innovation_level,
+             value = wir, group = sector)) +
+  geom_sankey_bump(space = 1.5, type = "alluvial", #1 or 1.5 for space, spaces creates room between the single flow elements
+                   color = "transparent", # color of the line inbetween flowelements
+                   smooth = 6, # how the flow elements should be depicted 
+                   aes(alpha = ifelse(innovation_level != "Austria", 0, NA))) + # command for highlighting the flows for Austria
+  scale_fill_manual(values = apo_colors(5))+ # includes the color function generated above
+  scale_alpha_continuous(range = c(0, 0.8),guide = FALSE) + # excluding the second legend generated by the alpha value
+  theme_sankey_bump(base_size = 16) + # adjusts the initial size of the flow elements
+  facet_wrap(~sector, nrow = 2) + # generates a graph for each element of the "sector" variable
+  geom_text(data = AT, aes(y = wir, x = time, 
+                           label = glue::glue("{round(wir, 1)}%"), # adjust your labels, in this case % is added
+                           fontface = "bold"), # labels are printed bold for more visibility
+            nudge_y = 3, nudge_x = 0, vjust = 0.25) +   # nudge_y moves along y axis, vjust places the label further down
+  labs(x = NULL, # removes title for the x-axis
+       fill = NULL, # removes any filling
+       color = NULL) + 
+  labs(title = "Where <span style='color:#235169;'>**do women invent?**</span>", 
+       subtitle = "Women Inventor Rate across country(classifications) and different technical areas",
+       caption = "Data: EPO 2022. Figure: @magdalenamaad")+
+  theme(plot.background = element_rect(fill = "white"),
+        plot.margin = margin(t = 1, b = 1, l = 1, r = 1, unit = "lines"), 
+        plot.title.position = "plot", # title aligned with plot
+        plot.title = ggtext::element_markdown(size = 30), # text can be formatted via markdown commands
+        plot.subtitle = element_text(margin = margin(b = 1, unit = "lines"), size = 12), # b adjusts the lines between title and subtitle
+        plot.caption = element_text(margin = margin(t = 1, unit = "lines"), size = 10),
+        legend.position = c(0.85, 0.25), # fist value indicates how far to the right the legend is printed, second one how much upwards the legend should be moved
+        legend.key.size = unit(3, "cm"), 
+        legend.key.width = unit(0.2, "cm"), # defines the width/height of the colored squares in the legend
+        legend.key.height = unit(0.2, "cm"),
+        legend.direction = "vertical", # legend is printed either vertical or horizontal
+        legend.text = element_text(size = 10),
+        legend.spacing.y = unit(0.3, "cm"), # defines the space between the lines in the legend
+        text = element_text(color = "black"), # you can adjust the color of all text elements with this command
+        axis.text = element_text(margin = margin(b = 0.5, unit = "lines"),color = "black", size = 10),
+        axis.text.y = element_blank(), # all commands remove unnecessary clutter
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),  # Hide y-axis ticks
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()
+        )+
+  inset_element(p=patent_office,
+                left=0.70,
+                bottom=0.01,  # top shifts to the right, bottom to the left
+                right=0.90,
+                top=0.04) 
+
+# adjust the last part if you wish to save your plot with the respective code-junk below:
+#inset_element(p=patent_office,
+              #  left=0.70,
+              #  bottom=0.01,  
+              #  right=0.90,
+              #  top=0.10)    
+
+
+#ggsave(filename = "women_inventors_rate_try_1.png", width = 12, height = 8, dpi = 320)
+```
